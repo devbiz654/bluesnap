@@ -14,8 +14,23 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/login');
 });
+
+use Illuminate\Support\Facades\Response;
+
+Route::get('/payment/cancel', function () {
+    return Response::make(
+        '<script>alert("Your payment has been cancelled."); window.location.href="https://mirpharma.net";</script>'
+    );
+});
+
+Route::get('/payment/success', function () {
+    return Response::make(
+        '<script>alert("Thank you! Payment has been completed successfully."); window.location.href="https://mirpharma.net";</script>'
+    );
+});
+
 
 Auth::routes();
 

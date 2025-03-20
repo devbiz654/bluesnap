@@ -39,29 +39,35 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($shoppers as $shopper)
-                                    <tr>
-                                        <td>{{ $shopper->id }}</td>
-                                        <td>{{ $shopper->shopper_id }}</td>
-                                        <td>{{ $shopper->first_name }} {{ $shopper->last_name }}</td>
-                                        <td>{{ $shopper->email }}</td>
-                                        <td class="text-center">
-                                            @if($shopper->payment_link)
-                                            <a href="{{ $shopper->payment_link }}" target="_blank" class="btn btn-sm btn-primary">View Link</a>
-        <button class="btn btn-sm btn-warning send-email" data-id="{{ $shopper->id }}" data-email="{{ $shopper->email }}" data-link="{{ $shopper->payment_link }}">Send Email</button>
-                                            @else
-                                            <button class="btn btn-xs btn-warning edit-payment" 
-            data-id="{{ $shopper->id }}" 
-            data-link="{{ $shopper->payment_link ?? '' }}">Update</button>
-                                            @endif
-                                        </td>    
-                                        <td>
-                                            <span class="badge badge-{{ $shopper->status == 'paid' ? 'success' : ($shopper->status == 'failed' ? 'danger' : 'warning') }}">
-                                                {{ ucfirst($shopper->status) }}
+                            @foreach($shoppers as $shopper)
+                                <tr>
+                                    <td>{{ $shopper->id }}</td>
+                                    <td>{{ $shopper->shopper_id }}</td>
+                                    <td>{{ $shopper->first_name }} {{ $shopper->last_name }}</td>
+                                    <td>{{ $shopper->email }}</td>
+                                    <td>
+                                        <!-- Update Payment Link Button -->
+                                        <button class="btn btn-sm btn-warning edit-payment" data-id="{{ $shopper->id }}">New Payment Link</button>
+                                    </td>
+                                    <td>
+                                        <ul class="list-group">
+                                            @foreach($shopper->payments as $payment)
+                                                <li class="list-group-item">
+                                                    <a class="btn btn-sm btn-primary" href="{{ $payment->payment_link }}" target="_blank">View Link</a>
+                                                    <button class="btn btn-sm btn-warning send-email" data-email="{{ $shopper->email }}" data-link="{{ $payment->payment_link }}" data-payment_id="{{ $payment->id }}">
+                                                    @if($payment->status == 'Email Sent') Resend Email @else Send Email @endif </button>   
+                                                    <span class="badge badge-{{ $shopper->status == 'paid' ? 'success' : ($shopper->status == 'failed' ? 'danger' : 'warning') }}">
+                                                {{ ucfirst($payment->status) }}
                                             </span>
-                                        </td>
-                                    </tr>
+                                                
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </td>
+                                    
+                                </tr>
                                 @endforeach
+
                             </tbody>
                         </table>
                     </div>
@@ -81,7 +87,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editPaymentModalLabel">Update Payment Link</h5>
+                <h5 class="modal-title" id="editPaymentModalLabel">Payment Link</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -124,10 +130,8 @@
             // Open modal and populate data
             $('.edit-payment').click(function () {
                 let shopperId = $(this).data('id');
-                let paymentLink = $(this).data('link');
 
                 $('#shopperId').val(shopperId);
-                $('#paymentLink').val(paymentLink);
                 $('#editPaymentModal').modal('show');
             });
 
@@ -156,9 +160,9 @@
 
 
             $('.send-email').click(function () {
-                let shopperId = $(this).data('id');
                 let email = $(this).data('email');
                 let link = $(this).data('link');
+                let payment_id = $(this).data('payment_id');
 
                 if (confirm(`Send payment link to ${email}?`)) {
                     $.ajax({
@@ -166,12 +170,13 @@
                         method: "POST",
                         data: {
                             _token: "{{ csrf_token() }}",
-                            shopper_id: shopperId,
                             email: email,
-                            payment_link: link
+                            payment_link: link,
+                            payment_id: payment_id
                         },
                         success: function (response) {
                             alert(response.message);
+                            location.reload();
                         },
                         error: function (xhr) {
                             alert("Error sending email. Please try again.");

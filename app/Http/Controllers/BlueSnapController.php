@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shopper;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentLinkMail;
@@ -57,42 +58,84 @@ class BlueSnapController extends Controller
             return redirect()->back()->with('error', 'Failed: ' . $e->getMessage());
         }
     }
+    // public function updatePaymentLink(Request $request)
+    // {
+    //     $request->validate([
+    //         'shopper_id' => 'required|exists:shoppers,id',
+    //         'payment_link' => 'required|url',
+    //     ]);
+
+    //     $shopper = Shopper::findOrFail($request->shopper_id);
+    //     $shopper->payment_link = $request->payment_link;
+    //     $shopper->save();
+
+    //     return response()->json(['message' => 'Payment link updated successfully!']);
+    // }
+
+    // public function sendPaymentLink(Request $request)
+    // {
+    //     $request->validate([
+    //         'shopper_id' => 'required|exists:shoppers,id',
+    //         'email' => 'required|email',
+    //         'payment_link' => 'required|url',
+    //     ]);
+
+    //     $shopper = Shopper::findOrFail($request->shopper_id);
+
+    //     try {
+    //         if ($shopper->email) {
+    //             Mail::to($request->email)->send(new PaymentLinkMail($request->payment_link));
+
+    //             // ✅ Update status after email is sent
+    //             $shopper->status = 'Email Sent';
+    //             $shopper->save();
+    //         }
+    //     } catch (\Exception $e) {
+    //         // ❌ If mail fails, set status to "Failed"
+    //         $shopper->status = 'Failed to Send Email';
+    //         $shopper->save();
+    //     }
+
+    //     return response()->json(['message' => 'Payment link sent successfully!']);
+    // }
+
     public function updatePaymentLink(Request $request)
     {
         $request->validate([
-            'shopper_id' => 'required|exists:shoppers,id',
+            'shopper_id'   => 'required|exists:shoppers,id',
             'payment_link' => 'required|url',
         ]);
 
-        $shopper = Shopper::findOrFail($request->shopper_id);
-        $shopper->payment_link = $request->payment_link;
-        $shopper->save();
+        // Create a new payment record
+        $payment = Payment::create([
+            'shopper_id'   => $request->shopper_id,
+            'payment_link' => $request->payment_link,
+            'status'       => 'pending',
+        ]);
 
-        return response()->json(['message' => 'Payment link updated successfully!']);
+        return response()->json(['message' => 'Payment link updated successfully!', 'payment_id' => $payment->id]);
     }
 
     public function sendPaymentLink(Request $request)
     {
         $request->validate([
-            'shopper_id' => 'required|exists:shoppers,id',
-            'email' => 'required|email',
+            'payment_id'   => 'required|exists:payments,id',
+            'email'        => 'required|email',
             'payment_link' => 'required|url',
         ]);
 
-        $shopper = Shopper::findOrFail($request->shopper_id);
+        $payment = Payment::findOrFail($request->payment_id);
 
         try {
-            if ($shopper->email) {
-                Mail::to($request->email)->send(new PaymentLinkMail($request->payment_link));
+            Mail::to($request->email)->send(new PaymentLinkMail($request->payment_link));
 
-                // ✅ Update status after email is sent
-                $shopper->status = 'Email Sent';
-                $shopper->save();
-            }
+            // ✅ Update payment status after email is sent
+            $payment->status = 'Email Sent';
+            $payment->save();
         } catch (\Exception $e) {
             // ❌ If mail fails, set status to "Failed"
-            $shopper->status = 'Failed to Send Email';
-            $shopper->save();
+            $payment->status = 'Failed to Send Email';
+            $payment->save();
         }
 
         return response()->json(['message' => 'Payment link sent successfully!']);
